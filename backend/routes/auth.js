@@ -113,6 +113,14 @@ router.post('/logout', (req, res) => {
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', (req, res) => {
+  console.log("SESSION USER:", req.session.userId);
+  
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  });
+
   if (!req.session.userId) {
     return res.json({ authenticated: false });
   }

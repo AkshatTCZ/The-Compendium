@@ -23,10 +23,13 @@ function _esc(str) {
 async function fetchAuthState() {
   try {
     const res = await fetch(`${AUTH_API}/me`, {
-      credentials: 'include'
+      credentials: 'include',
+      cache: 'no-store'
     });
     if (!res.ok) return { authenticated: false };
-    return await res.json();
+    const data = await res.json();
+    console.log("ME RESPONSE:", data);
+    return data;
   } catch {
     return { authenticated: false };
   }

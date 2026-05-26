@@ -118,8 +118,20 @@
             return;
           }
 
-          // Auto-logged-in after signup — go to library
-          window.location.href = '/library.html';
+          // Fetch fresh auth state before redirecting
+          var meRes = await fetch(window.API_BASE + '/api/auth/me', {
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          var meData = await meRes.json();
+          console.log("ME RESPONSE (SIGNUP):", meData);
+
+          if (meData.authenticated) {
+            // Auto-logged-in after signup — go to library
+            window.location.href = '/library.html';
+          } else {
+            showError('Session validation failed. Please try signing in manually.');
+          }
 
         } catch (err) {
           console.error('Signup error:', err);

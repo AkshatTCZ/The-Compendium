@@ -109,10 +109,22 @@
             return;
           }
 
-          // Redirect: back to library if that's where they came from
-          var params = new URLSearchParams(window.location.search);
-          var next   = params.get('next');
-          window.location.href = next === 'library' ? '/library.html' : '/index.html';
+          // Fetch fresh auth state before redirecting
+          var meRes = await fetch(window.API_BASE + '/api/auth/me', {
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          var meData = await meRes.json();
+          console.log("ME RESPONSE (LOGIN):", meData);
+
+          if (meData.authenticated) {
+            // Redirect: back to library if that's where they came from
+            var params = new URLSearchParams(window.location.search);
+            var next   = params.get('next');
+            window.location.href = next === 'library' ? '/library.html' : '/index.html';
+          } else {
+            showError('Session validation failed. Please try logging in again.');
+          }
 
         } catch (err) {
           console.error('Login error:', err);
