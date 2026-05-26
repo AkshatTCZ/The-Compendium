@@ -525,7 +525,12 @@ async function openGdModal(game, source) {
     detail = detailsCache.get(game.id);
   } else {
     try {
-      const res = await fetch(`${API_BASE_URL}/${game.id}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      
+      const res = await fetch(`${API_BASE_URL}/${game.id}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!res.ok) throw new Error(res.status);
       detail = await res.json();
       detailsCache.set(game.id, detail);
@@ -533,6 +538,14 @@ async function openGdModal(game, source) {
       console.error('GD fetch error:', err);
       // Still hide skeleton so the prefilled hero is at least visible
       gdSkeleton.classList.add('gd-skel-hidden');
+      
+      // Show error state inline
+      gdDescWrap.classList.remove('hidden');
+      gdDescription.textContent = 'Failed to load game details.';
+      gdDescription.style.textAlign = 'center';
+      gdDescription.style.color = 'var(--error)';
+      gdDescription.style.marginTop = '2rem';
+      
       return;
     }
   }

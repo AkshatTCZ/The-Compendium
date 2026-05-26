@@ -61,11 +61,17 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     if (!/^\d+$/.test(id)) return res.status(400).json({ error: 'Invalid game ID' });
 
+    console.log("DETAILS ROUTE HIT", req.params.id);
+    console.log("Fetching RAWG details...");
+
     // Fetch game detail and screenshots in parallel
     const [detailRes, screenshotsRes] = await Promise.all([
       axios.get(`${RAWG_BASE_URL}/games/${id}`,             { params: { key: RAWG_API_KEY } }),
       axios.get(`${RAWG_BASE_URL}/games/${id}/screenshots`, { params: { key: RAWG_API_KEY } }),
     ]);
+
+    console.log("RAWG details fetched");
+    console.log("Screenshots fetched");
 
     const g = detailRes.data;
 
@@ -92,23 +98,20 @@ router.get('/:id', async (req, res, next) => {
       clip:         g.clip ? g.clip.clip : null,
     };
 
-    let gameData = { game };
+    let gameData = { game, stats: { usersAdded: 0, averageUserScore: null } };
 
     try {
-      const stats = db.prepare(
-        `SELECT
-            COUNT(*) as local_owners,
-            AVG(rating) as local_rating,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as local_completions
-          FROM user_games
-          WHERE game_id = ?`
+      const row = db.prepare(
+        `SELECT COUNT(*) AS usersAdded, ROUND(AVG(rating),1) AS averageUserScore
+         FROM user_games WHERE game_id = ?`
       ).get(id);
 
-      if (stats) {
-        gameData.local_stats = {
-          owners: stats.local_owners || 0,
-          avgRating: stats.local_rating ? Number(stats.local_rating).toFixed(1) : null,
-          completions: stats.local_completions || 0
+      console.log("DB stats fetched");
+
+      if (row) {
+        gameData.stats = {
+          usersAdded: row.usersAdded || 0,
+          averageUserScore: row.averageUserScore || null
         };
       }
     } catch (dbErr) {
@@ -116,8 +119,12 @@ router.get('/:id', async (req, res, next) => {
       // Ignore DB errors, just fall through
     }
     
+    console.log("Sending response");
     res.json(gameData);
-  } catch (error) { next(error); }
+  } catch (error) { 
+    console.error("GAME DETAILS ERROR:", error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;
