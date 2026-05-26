@@ -33,6 +33,7 @@ const sessionDb = new Database(path.join(__dirname, 'sessions.sqlite'));
 
 // Session — stored in SQLite so sessions survive server restarts (dev-friendly)
 app.use(session({
+  name: "__Secure-connect.sid",
   proxy: true,
   store: new SqliteStore({
     client: sessionDb,
@@ -45,9 +46,10 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    secure:   process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure:   true,
+    sameSite: "none",
     httpOnly: true,
+    partitioned: true,
     maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }));

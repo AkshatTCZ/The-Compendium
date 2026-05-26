@@ -54,6 +54,10 @@ router.post('/signup', async (req, res) => {
           console.error('Session save error during signup:', err);
           return res.status(500).json({ error: 'Session save error.' });
         }
+        
+        console.log("Session ID:", req.sessionID);
+        console.log("Session User:", req.session.userId);
+
         return res.status(201).json({
           user: { id: info.lastInsertRowid, username: cleanUsername },
         });
@@ -104,6 +108,10 @@ router.post('/login', async (req, res) => {
         console.error('Session save error during login:', err);
         return res.status(500).json({ error: 'Session save error.' });
       }
+      
+      console.log("Session ID:", req.sessionID);
+      console.log("Session User:", req.session.userId);
+
       return res.json({
         user: { id: user.id, username: user.username },
       });
@@ -125,6 +133,7 @@ router.post('/logout', (req, res) => {
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', (req, res) => {
+  console.log("Incoming session:", req.session);
   console.log("SESSION USER:", req.session.userId);
   
   res.set({

@@ -110,12 +110,23 @@
           }
 
           // Fetch fresh auth state before redirecting
-          var meRes = await fetch(window.API_BASE + '/api/auth/me', {
-            credentials: 'include',
-            cache: 'no-store'
-          });
-          var meData = await meRes.json();
-          console.log("ME RESPONSE (LOGIN):", meData);
+          async function validateSession() {
+            var r = await fetch(window.API_BASE + '/api/auth/me', {
+              credentials: 'include',
+              cache: 'no-store'
+            });
+            return await r.json();
+          }
+
+          var meData = await validateSession();
+          console.log("ME RESPONSE (LOGIN) 1:", meData);
+
+          // Retry once if propagation is delayed
+          if (!meData.authenticated) {
+            await new Promise(function(resolve) { setTimeout(resolve, 300); });
+            meData = await validateSession();
+            console.log("ME RESPONSE (LOGIN) 2:", meData);
+          }
 
           if (meData.authenticated) {
             // Redirect: back to library if that's where they came from
