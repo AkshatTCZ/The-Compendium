@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Compendium</title>
+  <meta name="description" content="A clean, minimal game tracking application using the RAWG API">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="main-nav">
+        <h1>The Compendium</h1>
+        <div class="nav-right">
+          <a href="library.html" class="nav-link">My Library</a>
+          <div id="nav-auth" class="nav-auth"></div>
+        </div>
+      </nav>
+      <form id="search-form">
+        <input type="text" id="search-input" placeholder="Search for a game (e.g., Witcher 3)..." required />
+        <button type="submit" id="search-btn">Search</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="container" id="main-content">
+
+    <!-- ── Home discovery view (shown when no search is active) ── -->
+    <section id="home-view">
+      <div id="home-loading" class="home-loading-state">
+        <!-- Skeleton rows rendered by JS -->
+      </div>
+      <div id="home-sections">
+        <!-- Populated by JS: Trending, Top Rated, Recent -->
+      </div>
+    </section>
+
+    <!-- ── Search results view (shown when search is active) ── -->
+    <section id="search-view" class="hidden">
+      <div id="loading" class="hidden">Searching the database...</div>
+      <div id="error-message" class="hidden error"></div>
+      <div id="results-grid" class="grid"></div>
+    </section>
+
+  </main>
+
+  <!-- Modal -->
+  <div id="library-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="modal-close" class="close-btn modal-close-overlay">&times;</button>
+
+      <!-- Fixed hero image -->
+      <div class="modal-hero">
+        <img id="modal-game-cover" class="modal-cover-img" src="" alt="Game Cover">
+        <div class="modal-hero-gradient"></div>
+      </div>
+
+      <!-- Scrollable form area -->
+      <div class="modal-body modal-body-scroll">
+        <h2 id="modal-game-title" class="modal-title-main">Add to Library</h2>
+        <div id="modal-error" class="hidden error" style="margin-bottom:8px;font-size:0.9rem;padding:10px;"></div>
+        <form id="library-form">
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status" required>
+              <option value="plan_to_play">Plan to Play</option>
+              <option value="playing">Playing</option>
+              <option value="completed">Completed</option>
+              <option value="on_hold">On Hold</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rating">Rating (1–10)</label>
+            <input type="number" id="rating" name="rating" min="1" max="10" placeholder="Optional" />
+          </div>
+          <div class="form-group">
+            <label for="hours_played">Hours Played</label>
+            <input type="number" id="hours_played" name="hours_played" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label for="completion">Completion</label>
+            <select id="completion" name="completion">
+              <option value="none">None</option>
+              <option value="story">Story</option>
+              <option value="100%">100%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="times_completed">Times Completed</label>
+            <input type="number" id="times_completed" name="times_completed" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label for="platform">Platform</label>
+            <select id="platform" name="platform">
+              <!-- Populated dynamically by platforms.js when modal opens -->
+              <option value="pc">PC</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sticky footer — always visible, never scrolls away -->
+      <div class="modal-footer">
+        <button type="submit" form="library-form" id="modal-submit-btn" class="submit-btn">Save to Library</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       GAME DETAILS MODAL (new, wide, cinematic)
+       ════════════════════════════════════════════════════ -->
+  <div id="game-details-modal" class="gd-overlay hidden">
+    <div class="gd-shell">
+
+      <!-- Close button -->
+      <button id="gd-close" class="gd-close" aria-label="Close">&#x2715;</button>
+
+      <!-- Hero backdrop -->
+      <div class="gd-hero" id="gd-hero">
+        <img id="gd-hero-img" class="gd-hero-img" src="" alt="">
+        <div class="gd-hero-gradient"></div>
+        <div class="gd-hero-content">
+          <div id="gd-genres" class="gd-genres"></div>
+          <h2 id="gd-title" class="gd-title"></h2>
+          <div class="gd-hero-meta">
+            <span id="gd-released" class="gd-meta-chip"></span>
+            <span id="gd-metacritic" class="gd-metacritic hidden"></span>
+          </div>
+          <button id="gd-add-btn" class="gd-add-btn">+ Add to Library</button>
+        </div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div class="gd-body">
+
+        <!-- Store links -->
+        <div id="gd-stores" class="gd-stores hidden"></div>
+
+        <!-- Stats row -->
+        <div class="gd-stats-row" id="gd-stats">
+          <div class="gd-stat"><span class="gd-stat-val" id="gd-rating">—</span><span class="gd-stat-lbl">RAWG Rating</span></div>
+          <div class="gd-stat"><span class="gd-stat-val" id="gd-user-score">—</span><span class="gd-stat-lbl">User Score</span></div>
+          <div class="gd-stat"><span class="gd-stat-val" id="gd-users-added">—</span><span class="gd-stat-lbl">Users Tracking</span></div>
+          <div class="gd-stat"><span class="gd-stat-val" id="gd-playtime">—</span><span class="gd-stat-lbl">Avg Playtime</span></div>
+        </div>
+
+        <!-- Media: trailer or screenshots -->
+        <div id="gd-media" class="gd-media hidden">
+          <h3 class="gd-section-heading">Media</h3>
+          <div id="gd-media-inner"></div>
+        </div>
+
+        <!-- Description -->
+        <div id="gd-desc-wrap" class="gd-desc-wrap hidden">
+          <h3 class="gd-section-heading">About</h3>
+          <p id="gd-description" class="gd-description"></p>
+          <button id="gd-read-more" class="gd-read-more hidden">Read more ↓</button>
+        </div>
+
+        <!-- Platforms -->
+        <div id="gd-platforms-wrap" class="gd-platforms-wrap hidden">
+          <h3 class="gd-section-heading">Platforms</h3>
+          <div id="gd-platforms" class="gd-platform-badges"></div>
+        </div>
+
+        <!-- Developers / Publishers -->
+        <div id="gd-credits" class="gd-credits hidden">
+          <div id="gd-devs" class="gd-credit-col"></div>
+          <div id="gd-pubs" class="gd-credit-col"></div>
+        </div>
+
+      </div><!-- /gd-body -->
+
+      <!-- Skeleton overlay (shown while loading) -->
+      <div id="gd-skeleton" class="gd-skeleton">
+        <div class="gd-skel-hero"></div>
+        <div class="gd-skel-body">
+          <div class="gd-skel-line wide"></div>
+          <div class="gd-skel-line medium"></div>
+          <div class="gd-skel-stats">
+            <div class="gd-skel-stat"></div>
+            <div class="gd-skel-stat"></div>
+            <div class="gd-skel-stat"></div>
+            <div class="gd-skel-stat"></div>
+          </div>
+          <div class="gd-skel-line wide"></div>
+          <div class="gd-skel-line medium"></div>
+          <div class="gd-skel-line short"></div>
+        </div>
+      </div>
+
+    </div><!-- /gd-shell -->
+  </div><!-- /game-details-modal -->
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+
+  <script src="auth.js"></script>
+  <script src="platforms.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — The Compendium</title>
+  <meta name="description" content="Log in to your Compendium account to track your game library.">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+
+  <header>
+    <div class="container">
+      <nav class="main-nav">
+        <a href="/index.html" class="nav-logo-link"><h1>The Compendium</h1></a>
+        <div id="nav-auth" class="nav-auth"></div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+
+      <div class="auth-brand">
+        <h2 class="auth-heading">Welcome back</h2>
+        <p class="auth-subheading">Sign in to your Compendium account</p>
+      </div>
+
+      <div id="auth-error" class="auth-error hidden"></div>
+
+      <form id="login-form" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="identifier">Email or Username</label>
+          <input type="text" id="identifier" name="identifier"
+            placeholder="you@example.com or username"
+            autocomplete="username" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-with-toggle">
+            <input type="password" id="password" name="password"
+              placeholder="••••••••"
+              autocomplete="current-password" required />
+            <button type="button" id="toggle-pw" class="pw-toggle" aria-label="Toggle password">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" id="login-btn" class="submit-btn auth-submit-btn">Sign In</button>
+      </form>
+
+      <p class="auth-switch">
+        Don't have an account? <a href="/signup.html">Create one</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var AUTH_API    = '/api/auth';
+      var loginForm   = document.getElementById('login-form');
+      var loginBtn    = document.getElementById('login-btn');
+      var errorBanner = document.getElementById('auth-error');
+      var togglePw    = document.getElementById('toggle-pw');
+      var pwInput     = document.getElementById('password');
+
+      // If already logged in, go to index
+      window.__authReady.then(function (auth) {
+        if (auth.authenticated) {
+          window.location.href = '/index.html';
+        }
+      });
+
+      // Password toggle
+      togglePw.addEventListener('click', function () {
+        pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+        togglePw.textContent = pwInput.type === 'password' ? '👁' : '🙈';
+      });
+
+      // Form submit
+      loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        errorBanner.classList.add('hidden');
+
+        var identifier = document.getElementById('identifier').value.trim();
+        var password   = pwInput.value;
+
+        if (!identifier || !password) {
+          showError('Please fill in all fields.');
+          return;
+        }
+
+        loginBtn.disabled    = true;
+        loginBtn.textContent = 'Signing in…';
+
+        try {
+          var res  = await fetch(AUTH_API + '/login', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ identifier: identifier, password: password }),
+          });
+          var data = await res.json();
+
+          if (!res.ok) {
+            showError(data.error || 'Login failed. Please try again.');
+            return;
+          }
+
+          // Redirect: back to library if that's where they came from
+          var params = new URLSearchParams(window.location.search);
+          var next   = params.get('next');
+          window.location.href = next === 'library' ? '/library.html' : '/index.html';
+
+        } catch (err) {
+          console.error('Login error:', err);
+          showError('Network error. Is the server running?');
+        } finally {
+          loginBtn.disabled    = false;
+          loginBtn.textContent = 'Sign In';
+        }
+      });
+
+      function showError(msg) {
+        errorBanner.textContent = msg;
+        errorBanner.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Library — The Compendium</title>
+  <meta name="description" content="Your personal game library on The Compendium">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="main-nav">
+        <h1>My Library</h1>
+        <div class="nav-right">
+          <a href="index.html" class="nav-link">← Search Games</a>
+          <div id="nav-auth" class="nav-auth"></div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="library-toolbar">
+      <div id="library-count" class="library-count"></div>
+      <div class="view-toggle">
+        <button id="btn-grid-view" class="view-btn active" title="Grid View">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="0" y="0" width="7" height="7" rx="1"/>
+            <rect x="9" y="0" width="7" height="7" rx="1"/>
+            <rect x="0" y="9" width="7" height="7" rx="1"/>
+            <rect x="9" y="9" width="7" height="7" rx="1"/>
+          </svg>
+          Grid
+        </button>
+        <button id="btn-list-view" class="view-btn" title="List View">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="0" y="0" width="16" height="3" rx="1.5"/>
+            <rect x="0" y="6" width="16" height="3" rx="1.5"/>
+            <rect x="0" y="12" width="16" height="3" rx="1.5"/>
+          </svg>
+          List
+        </button>
+      </div>
+    </div>
+
+    <div id="loading" class="hidden">Loading library...</div>
+    <div id="error-message" class="hidden error"></div>
+    <div id="library-container"></div>
+  </main>
+
+  <!-- Game Details Modal -->
+  <div id="details-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="details-title">
+    <div class="modal-content details-modal-content">
+
+      <!-- Close button floated over hero -->
+      <button id="details-close" class="close-btn modal-close-overlay" aria-label="Close">&#x2715;</button>
+
+      <!-- Hero image -->
+      <div class="modal-hero">
+        <img id="details-cover" class="modal-cover-img" src="" alt="">
+        <div class="modal-hero-gradient"></div>
+      </div>
+
+      <!-- Body: VIEW mode -->
+      <div class="modal-body details-body" id="details-view-panel">
+        <h2 id="details-title" class="modal-title-main"></h2>
+
+        <div class="details-grid">
+          <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span id="details-status" class="detail-value"></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Rating</span>
+            <span id="details-rating" class="detail-value"></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Hours Played</span>
+            <span id="details-hours" class="detail-value"></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Completion</span>
+            <span id="details-completion" class="detail-value"></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Platform</span>
+            <span id="details-platform" class="detail-value platform-tag"></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Date Added</span>
+            <span id="details-date" class="detail-value muted-val"></span>
+          </div>
+          <div class="detail-row" style="border:none">
+            <span class="detail-label">Times Completed</span>
+            <span id="details-times-completed" class="detail-value"></span>
+          </div>
+        </div>
+
+        <!-- View mode footer -->
+        <div class="details-footer">
+          <button id="details-edit-btn" class="details-btn-edit">Edit</button>
+          <button id="details-close-btn" class="details-btn-secondary">Close</button>
+        </div>
+
+        <!-- Delete section -->
+        <div class="delete-section">
+          <button id="details-delete-btn" class="details-btn-delete">Remove from Library</button>
+
+          <!-- Confirm panel (hidden until delete is clicked) -->
+          <div id="delete-confirm-panel" class="hidden">
+            <p class="delete-confirm-text">Remove this game from your library? This cannot be undone.</p>
+            <div class="delete-confirm-actions">
+              <button id="details-confirm-delete-btn" class="details-btn-danger">Yes, Remove</button>
+              <button id="details-cancel-delete-btn" class="details-btn-secondary">Cancel</button>
+            </div>
+          </div>
+
+          <div id="delete-error" class="hidden error" style="font-size:0.88rem;padding:10px;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <!-- Body: EDIT mode (hidden by default) -->
+      <div class="modal-body details-body hidden" id="details-edit-panel">
+        <h2 id="details-edit-title" class="modal-title-main"></h2>
+
+        <div id="details-edit-error" class="hidden error" style="font-size:0.88rem;padding:10px;margin-bottom:4px"></div>
+
+        <form id="details-edit-form">
+          <div class="form-group">
+            <label for="edit-status">Status</label>
+            <select id="edit-status" name="status">
+              <option value="plan_to_play">Plan to Play</option>
+              <option value="playing">Playing</option>
+              <option value="completed">Completed</option>
+              <option value="on_hold">On Hold</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-rating">Rating (1–10)</label>
+            <input type="number" id="edit-rating" name="rating" min="1" max="10" placeholder="Optional" />
+          </div>
+          <div class="form-group">
+            <label for="edit-hours">Hours Played</label>
+            <input type="number" id="edit-hours" name="hours_played" min="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label for="edit-completion">Completion</label>
+            <select id="edit-completion" name="completion">
+              <option value="none">None</option>
+              <option value="story">Story</option>
+              <option value="100%">100%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-times-completed">Times Completed</label>
+            <input type="number" id="edit-times-completed" name="times_completed" min="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label for="edit-platform">Platform</label>
+            <select id="edit-platform" name="platform">
+              <!-- Populated by platforms.js / populatePlatformDropdown() in switchToEdit() -->
+              <option value="pc">PC</option>
+            </select>
+          </div>
+
+          <!-- Edit mode footer -->
+          <div class="details-footer">
+            <button type="submit" id="details-save-btn" class="details-btn-save">Save Changes</button>
+            <button type="button" id="details-cancel-btn" class="details-btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <script src="auth.js"></script>
+  <script src="platforms.js"></script>
+  <script src="library.js"></script>
+</body>
+</html>
