@@ -17,13 +17,23 @@ const PORT = process.env.PORT || 3000;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
-app.use(cors());
+app.set('trust proxy', 1);
+
+app.use(cors({
+  origin: [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "https://the-compendium-track.vercel.app/
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 const sessionDb = new Database(path.join(__dirname, 'sessions.sqlite'));
 
 // Session — stored in SQLite so sessions survive server restarts (dev-friendly)
 app.use(session({
+  proxy: true,
   store: new SqliteStore({
     client: sessionDb,
     expired: {
@@ -35,8 +45,9 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
+    secure:   process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
-    sameSite: 'lax',
     maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }));

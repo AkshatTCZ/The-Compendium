@@ -67,7 +67,7 @@
   <script src="auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      var AUTH_API    = '/api/auth';
+      var AUTH_API    = window.API_BASE + '/api/auth';
       var signupForm  = document.getElementById('signup-form');
       var signupBtn   = document.getElementById('signup-btn');
       var errorBanner = document.getElementById('auth-error');
@@ -109,6 +109,7 @@
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ username: username, email: email, password: password }),
+            credentials: 'include'
           });
           var data = await res.json();
 

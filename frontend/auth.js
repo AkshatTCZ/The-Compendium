@@ -3,7 +3,12 @@
    Loaded on every page. Checks session, populates navbar, guards library.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const AUTH_API = '/api/auth';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3000' 
+  : 'https://the-compendium.onrender.com';
+window.API_BASE = API_BASE;
+
+const AUTH_API = `${API_BASE}/api/auth`;
 
 // ── Escape helper (avoid XSS in username display) ─────────────────────────────
 function _esc(str) {
@@ -17,7 +22,9 @@ function _esc(str) {
 // ── Fetch current session state ───────────────────────────────────────────────
 async function fetchAuthState() {
   try {
-    const res = await fetch(`${AUTH_API}/me`);
+    const res = await fetch(`${AUTH_API}/me`, {
+      credentials: 'include'
+    });
     if (!res.ok) return { authenticated: false };
     return await res.json();
   } catch {
@@ -52,7 +59,10 @@ function renderNavAuth(auth) {
 // ── Logout ────────────────────────────────────────────────────────────────────
 async function handleLogout() {
   try {
-    await fetch(`${AUTH_API}/logout`, { method: 'POST' });
+    await fetch(`${AUTH_API}/logout`, { 
+      method: 'POST',
+      credentials: 'include'
+    });
   } catch { /* ignore network errors */ }
   window.location.href = '/index.html';
 }

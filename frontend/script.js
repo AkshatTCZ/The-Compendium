@@ -29,9 +29,9 @@ const modalError    = document.getElementById('modal-error');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const API_BASE_URL      = 'http://localhost:3000/api/games';
-const DISCOVER_URL      = 'http://localhost:3000/api/games/discover';
-const USER_GAMES_API_URL = 'http://localhost:3000/api/user-games';
+const API_BASE_URL       = window.API_BASE + '/api/games';
+const DISCOVER_URL       = window.API_BASE + '/api/games/discover';
+const USER_GAMES_API_URL = window.API_BASE + '/api/user-games';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -359,6 +359,7 @@ async function handleLibrarySubmit(e) {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(payload),
+      credentials: 'include'
     });
 
     const body = await response.json();

@@ -41,7 +41,7 @@ const detailsConfirmDeleteBtn = document.getElementById('details-confirm-delete-
 const detailsCancelDeleteBtn  = document.getElementById('details-cancel-delete-btn');
 const deleteError             = document.getElementById('delete-error');
 
-const USER_GAMES_API_URL = 'http://localhost:3000/api/user-games';
+const USER_GAMES_API_URL = window.API_BASE + '/api/user-games';
 
 // ── Shared state ─────────────────────────────────────────────────────────────
 let cachedGames    = [];
@@ -149,7 +149,9 @@ async function fetchLibrary() {
   loadingIndicator.classList.remove('hidden');
 
   try {
-    const response = await fetch(USER_GAMES_API_URL);
+    const response = await fetch(USER_GAMES_API_URL, {
+      credentials: 'include'
+    });
     if (!response.ok) throw new Error(`Server returned ${response.status}`);
 
     const data = await response.json();
@@ -381,9 +383,10 @@ async function handleSave(e) {
 
   try {
     const response = await fetch(`${USER_GAMES_API_URL}/${activeGame.id}`, {
-      method:  'PUT',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials: 'include'
     });
 
     const body = await response.json();
@@ -463,7 +466,8 @@ async function deleteGame() {
   try {
     console.log('[DELETE] activeGame:', activeGame.id, activeGame.name);
     const response = await fetch(`${USER_GAMES_API_URL}/${activeGame.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
 
     // Safely parse — response may not be JSON if route isn't registered
