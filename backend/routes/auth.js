@@ -49,8 +49,14 @@ router.post('/signup', async (req, res) => {
       req.session.userId   = info.lastInsertRowid;
       req.session.username = cleanUsername;
 
-      return res.status(201).json({
-        user: { id: info.lastInsertRowid, username: cleanUsername },
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error during signup:', err);
+          return res.status(500).json({ error: 'Session save error.' });
+        }
+        return res.status(201).json({
+          user: { id: info.lastInsertRowid, username: cleanUsername },
+        });
       });
     } catch (dbErr) {
       if (dbErr.message.includes('UNIQUE constraint failed: users.username'))
@@ -93,8 +99,14 @@ router.post('/login', async (req, res) => {
     req.session.userId   = user.id;
     req.session.username = user.username;
 
-    return res.json({
-      user: { id: user.id, username: user.username },
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error during login:', err);
+        return res.status(500).json({ error: 'Session save error.' });
+      }
+      return res.json({
+        user: { id: user.id, username: user.username },
+      });
     });
   } catch (dbErr) {
     console.error('Login DB error:', dbErr.message);
