@@ -23,7 +23,7 @@ app.use(cors({
   origin: [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "https://the-compendium-track.vercel.app/
+    "https://the-compendium-track.vercel.app"
   ],
   credentials: true
 }));
