@@ -40,28 +40,26 @@ router.post('/signup', async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    db.run(
-      `INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)`,
-      [cleanUsername, cleanEmail, hash],
-      function (dbErr) {
-        if (dbErr) {
-          if (dbErr.message.includes('UNIQUE constraint failed: users.username'))
-            return res.status(409).json({ error: 'Username already taken.' });
-          if (dbErr.message.includes('UNIQUE constraint failed: users.email'))
-            return res.status(409).json({ error: 'An account with that email already exists.' });
-          console.error('Signup DB error:', dbErr.message);
-          return res.status(500).json({ error: 'Database error during signup.' });
-        }
+    try {
+      const info = db.prepare(
+        `INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)`
+      ).run(cleanUsername, cleanEmail, hash);
 
-        // Auto-login
-        req.session.userId   = this.lastID;
-        req.session.username = cleanUsername;
+      // Auto-login
+      req.session.userId   = info.lastInsertRowid;
+      req.session.username = cleanUsername;
 
-        return res.status(201).json({
-          user: { id: this.lastID, username: cleanUsername },
-        });
-      }
-    );
+      return res.status(201).json({
+        user: { id: info.lastInsertRowid, username: cleanUsername },
+      });
+    } catch (dbErr) {
+      if (dbErr.message.includes('UNIQUE constraint failed: users.username'))
+        return res.status(409).json({ error: 'Username already taken.' });
+      if (dbErr.message.includes('UNIQUE constraint failed: users.email'))
+        return res.status(409).json({ error: 'An account with that email already exists.' });
+      console.error('Signup DB error:', dbErr.message);
+      return res.status(500).json({ error: 'Database error during signup.' });
+    }
   } catch (e) {
     console.error('Signup error:', e);
     res.status(500).json({ error: 'Server error during signup.' });
@@ -77,32 +75,31 @@ router.post('/login', async (req, res) => {
 
   const clean = identifier.trim().toLowerCase();
 
-  // Look up by email OR username (both COLLATE NOCASE in schema)
-  db.get(
-    `SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1`,
-    [clean, clean],
-    async (dbErr, user) => {
-      if (dbErr) {
-        console.error('Login DB error:', dbErr.message);
-        return res.status(500).json({ error: 'Database error.' });
-      }
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials.' });
-      }
+  try {
+    // Look up by email OR username (both COLLATE NOCASE in schema)
+    const user = db.prepare(
+      `SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1`
+    ).get(clean, clean);
 
-      const match = await bcrypt.compare(password, user.password_hash);
-      if (!match) {
-        return res.status(401).json({ error: 'Invalid credentials.' });
-      }
-
-      req.session.userId   = user.id;
-      req.session.username = user.username;
-
-      return res.json({
-        user: { id: user.id, username: user.username },
-      });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
-  );
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    req.session.userId   = user.id;
+    req.session.username = user.username;
+
+    return res.json({
+      user: { id: user.id, username: user.username },
+    });
+  } catch (dbErr) {
+    console.error('Login DB error:', dbErr.message);
+    return res.status(500).json({ error: 'Database error.' });
+  }
 });
 
 // ── POST /api/auth/logout ─────────────────────────────────────────────────────

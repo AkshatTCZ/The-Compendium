@@ -57,21 +57,20 @@ router.post('/', (req, res) => {
   const validationError = validateUserGame({ status, completion, platform, rating, hours_played, times_completed });
   if (validationError) return res.status(400).json({ error: validationError });
 
-  db.run(
-    `INSERT INTO user_games
-       (user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed],
-    function(err) {
-      if (err) {
-        if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('UNIQUE constraint failed'))
-          return res.status(409).json({ error: 'Game already exists in library' });
-        console.error(err.message);
-        return res.status(500).json({ error: 'Database error' });
-      }
-      res.status(201).json({ success: true, user_game_id: this.lastID });
-    }
-  );
+  try {
+    const info = db.prepare(
+      `INSERT INTO user_games
+         (user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed);
+    
+    res.status(201).json({ success: true, user_game_id: info.lastInsertRowid });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message.includes('UNIQUE constraint failed'))
+      return res.status(409).json({ error: 'Game already exists in library' });
+    console.error(err.message);
+    return res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // ── PUT /api/user-games/:id ───────────────────────────────────────────────────
@@ -94,46 +93,50 @@ router.put('/:id', (req, res) => {
   const validationError = validateUserGame({ status, completion, platform, rating, hours_played, times_completed });
   if (validationError) return res.status(400).json({ error: validationError });
 
-  db.run(
-    `UPDATE user_games
-     SET status=?, rating=?, hours_played=?, completion=?, platform=?,
-         times_completed=?, updated_at=CURRENT_TIMESTAMP
-     WHERE id=? AND user_id=?`,
-    [status, rating, hours_played, completion, platform, times_completed, id, user_id],
-    function(err) {
-      if (err) { console.error(err.message); return res.status(500).json({ error: 'Database error' }); }
-      if (this.changes === 0) return res.status(404).json({ error: 'Game not found in library' });
-      res.json({ success: true });
-    }
-  );
+  try {
+    const info = db.prepare(
+      `UPDATE user_games
+       SET status=?, rating=?, hours_played=?, completion=?, platform=?,
+           times_completed=?, updated_at=CURRENT_TIMESTAMP
+       WHERE id=? AND user_id=?`
+    ).run(status, rating, hours_played, completion, platform, times_completed, id, user_id);
+    
+    if (info.changes === 0) return res.status(404).json({ error: 'Game not found in library' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // ── GET /api/user-games ───────────────────────────────────────────────────────
 router.get('/', (req, res) => {
   const user_id = req.session.userId;
 
-  db.all(
-    `SELECT * FROM user_games WHERE user_id = ? ORDER BY created_at DESC`,
-    [user_id],
-    (err, rows) => {
-      if (err) { console.error(err.message); return res.status(500).json({ error: 'Database error' }); }
-      res.json({
-        games: rows.map(r => ({
-          id:             r.id,
-          gameId:         r.game_id,
-          name:           r.game_name,
-          cover:          r.cover_image,
-          status:         r.status,
-          rating:         r.rating,
-          hours:          r.hours_played,
-          completion:     r.completion,
-          platform:       r.platform,
-          timesCompleted: r.times_completed ?? 0,
-          createdAt:      r.created_at,
-        }))
-      });
-    }
-  );
+  try {
+    const rows = db.prepare(
+      `SELECT * FROM user_games WHERE user_id = ? ORDER BY created_at DESC`
+    ).all(user_id);
+    
+    res.json({
+      games: rows.map(r => ({
+        id:             r.id,
+        gameId:         r.game_id,
+        name:           r.game_name,
+        cover:          r.cover_image,
+        status:         r.status,
+        rating:         r.rating,
+        hours:          r.hours_played,
+        completion:     r.completion,
+        platform:       r.platform,
+        timesCompleted: r.times_completed ?? 0,
+        createdAt:      r.created_at,
+      }))
+    });
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // ── DELETE /api/user-games/:id ────────────────────────────────────────────────
@@ -141,15 +144,17 @@ router.delete('/:id', (req, res) => {
   const { id }  = req.params;
   const user_id = req.session.userId;
 
-  db.run(
-    `DELETE FROM user_games WHERE id = ? AND user_id = ?`,
-    [id, user_id],
-    function(err) {
-      if (err) { console.error(err.message); return res.status(500).json({ error: 'Database error' }); }
-      if (this.changes === 0) return res.status(404).json({ error: 'Game not found in library' });
-      res.json({ success: true });
-    }
-  );
+  try {
+    const info = db.prepare(
+      `DELETE FROM user_games WHERE id = ? AND user_id = ?`
+    ).run(id, user_id);
+    
+    if (info.changes === 0) return res.status(404).json({ error: 'Game not found in library' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ error: 'Database error' });
+  }
 });
 
 module.exports = router;

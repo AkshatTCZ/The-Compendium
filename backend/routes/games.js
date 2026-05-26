@@ -92,23 +92,31 @@ router.get('/:id', async (req, res, next) => {
       clip:         g.clip ? g.clip.clip : null,
     };
 
-    // Local DB stats — run both queries concurrently
-    const stats = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT COUNT(*) AS usersAdded, ROUND(AVG(rating),1) AS averageUserScore
-         FROM user_games WHERE game_id = ?`,
-        [id],
-        (err, row) => {
-          if (err) return reject(err);
-          resolve({
-            usersAdded:       row ? (row.usersAdded || 0) : 0,
-            averageUserScore: row ? row.averageUserScore : null,
-          });
-        }
-      );
-    });
+    let gameData = { game };
 
-    res.json({ game, stats });
+    try {
+      const stats = db.prepare(
+        `SELECT
+            COUNT(*) as local_owners,
+            AVG(rating) as local_rating,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as local_completions
+          FROM user_games
+          WHERE game_id = ?`
+      ).get(id);
+
+      if (stats) {
+        gameData.local_stats = {
+          owners: stats.local_owners || 0,
+          avgRating: stats.local_rating ? Number(stats.local_rating).toFixed(1) : null,
+          completions: stats.local_completions || 0
+        };
+      }
+    } catch (dbErr) {
+      console.error('Local stats error:', dbErr.message);
+      // Ignore DB errors, just fall through
+    }
+    
+    res.json(gameData);
   } catch (error) { next(error); }
 });
 

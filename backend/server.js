@@ -2,7 +2,8 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const SqliteStore = require('better-sqlite3-session-store')(session);
+const Database = require('better-sqlite3');
 require('dotenv').config();
 
 const gamesRouter     = require('./routes/games');
@@ -19,11 +20,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+const sessionDb = new Database(path.join(__dirname, 'sessions.sqlite'));
+
 // Session — stored in SQLite so sessions survive server restarts (dev-friendly)
 app.use(session({
-  store: new SQLiteStore({
-    db:  'sessions.sqlite',
-    dir: __dirname,          // stores next to server.js
+  store: new SqliteStore({
+    client: sessionDb,
+    expired: {
+      clear: true,
+      intervalMs: 900000 //ms = 15min
+    }
   }),
   secret:            process.env.SESSION_SECRET || 'compendium-dev-secret-change-in-production',
   resave:            false,
