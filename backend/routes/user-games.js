@@ -37,7 +37,7 @@ router.post('/', (req, res) => {
 
   let {
     game_id, game_name, cover_image,
-    status, rating, hours_played, completion, platform, times_completed
+    status, rating, hours_played, completion, platform, times_completed, genres
   } = req.body;
 
   if (!game_id || !game_name) {
@@ -47,6 +47,7 @@ router.post('/', (req, res) => {
   status     = status     || 'plan_to_play';
   completion = completion || 'none';
   platform   = platform   || 'pc';
+  genres     = genres     || '[]';
 
   rating          = rating          === "" || rating          == null ? null : Number(rating);
   hours_played    = hours_played    === "" || hours_played    == null ? 0    : Number(hours_played);
@@ -60,9 +61,9 @@ router.post('/', (req, res) => {
   try {
     const info = db.prepare(
       `INSERT INTO user_games
-         (user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed);
+         (user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed, genres)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(user_id, game_id, game_name, cover_image, status, rating, hours_played, completion, platform, times_completed, genres);
     
     res.status(201).json({ success: true, user_game_id: info.lastInsertRowid });
   } catch (err) {
@@ -78,11 +79,12 @@ router.put('/:id', (req, res) => {
   const { id }  = req.params;
   const user_id = req.session.userId;
 
-  let { status, rating, hours_played, completion, platform, times_completed } = req.body;
+  let { status, rating, hours_played, completion, platform, times_completed, genres } = req.body;
 
   status     = status     || 'plan_to_play';
   completion = completion || 'none';
   platform   = platform   || 'pc';
+  genres     = genres     || '[]';
 
   rating          = rating          === "" || rating          == null ? null : Number(rating);
   hours_played    = hours_played    === "" || hours_played    == null ? 0    : Number(hours_played);
@@ -97,9 +99,9 @@ router.put('/:id', (req, res) => {
     const info = db.prepare(
       `UPDATE user_games
        SET status=?, rating=?, hours_played=?, completion=?, platform=?,
-           times_completed=?, updated_at=CURRENT_TIMESTAMP
+           times_completed=?, genres=?, updated_at=CURRENT_TIMESTAMP
        WHERE id=? AND user_id=?`
-    ).run(status, rating, hours_played, completion, platform, times_completed, id, user_id);
+    ).run(status, rating, hours_played, completion, platform, times_completed, genres, id, user_id);
     
     if (info.changes === 0) return res.status(404).json({ error: 'Game not found in library' });
     res.json({ success: true });
@@ -130,6 +132,7 @@ router.get('/', (req, res) => {
         completion:     r.completion,
         platform:       r.platform,
         timesCompleted: r.times_completed ?? 0,
+        genres:         r.genres,
         createdAt:      r.created_at,
       }))
     });

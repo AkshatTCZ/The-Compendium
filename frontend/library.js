@@ -21,6 +21,7 @@ const detailsDate       = document.getElementById('details-date');
 const detailsTimesCompleted = document.getElementById('details-times-completed');
 const detailsEditBtn    = document.getElementById('details-edit-btn');
 const detailsCloseBtn   = document.getElementById('details-close-btn');
+const detailsFavBtn     = document.getElementById('details-fav-btn');
 // Edit panel
 const editPanel         = document.getElementById('details-edit-panel');
 const editTitle         = document.getElementById('details-edit-title');
@@ -111,6 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Modal: edit mode triggers
   detailsEditBtn.addEventListener('click', switchToEdit);
   detailsCancelBtn.addEventListener('click', switchToView);
+
+  // Modal: favorite trigger
+  if (detailsFavBtn) {
+    detailsFavBtn.addEventListener('click', handleSetFavorite);
+  }
 
   // Modal: save handler
   editForm.addEventListener('submit', handleSave);
@@ -375,7 +381,8 @@ async function handleSave(e) {
     hours_played:    editHours.value          === '' ? 0    : Number(editHours.value),
     completion:      editCompletion.value,
     platform:        editPlatform.value,
-    times_completed: editTimesCompleted.value === '' ? 0    : Number(editTimesCompleted.value)
+    times_completed: editTimesCompleted.value === '' ? 0    : Number(editTimesCompleted.value),
+    genres:          activeGame.genres // Preserve genres
   };
 
   detailsSaveBtn.disabled    = true;
@@ -407,7 +414,8 @@ async function handleSave(e) {
         hours:          payload.hours_played,
         completion:     payload.completion,
         platform:       payload.platform,
-        timesCompleted: payload.times_completed
+        timesCompleted: payload.times_completed,
+        genres:         payload.genres
       };
       activeGame = cachedGames[idx];
     }
@@ -425,6 +433,39 @@ async function handleSave(e) {
   } finally {
     detailsSaveBtn.disabled    = false;
     detailsSaveBtn.textContent = 'Save Changes';
+  }
+}
+
+// ── PUT: set favorite ─────────────────────────────────────────────────────────
+
+async function handleSetFavorite() {
+  if (!activeGame) return;
+  
+  detailsFavBtn.disabled = true;
+  detailsFavBtn.textContent = 'Setting...';
+
+  try {
+    const response = await fetch(window.API_BASE + '/api/dashboard/favorite-game', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: activeGame.id }),
+      credentials: 'include'
+    });
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      showToast(body.error || 'Failed to set favorite.', 'error');
+      return;
+    }
+
+    showToast('Set as Favorite Game! 🏆', 'success');
+  } catch (err) {
+    console.error('Favorite error:', err);
+    showToast('Network error.', 'error');
+  } finally {
+    detailsFavBtn.disabled = false;
+    detailsFavBtn.innerHTML = '🏆 Set as Favorite';
   }
 }
 

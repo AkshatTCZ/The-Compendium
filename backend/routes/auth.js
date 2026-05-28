@@ -126,7 +126,8 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error('Session destroy error:', err);
-    res.clearCookie('connect.sid');
+    const cookieName = process.env.NODE_ENV === 'production' ? '__Secure-connect.sid' : 'connect.sid';
+    res.clearCookie(cookieName);
     res.json({ success: true });
   });
 });

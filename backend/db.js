@@ -42,16 +42,35 @@ try {
     }
   }
 
+  // Migrate existing databases: add genres if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE user_games ADD COLUMN genres TEXT DEFAULT '[]'`);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) {
+      console.error('Migration error (genres):', err.message);
+    }
+  }
+
   // ── users ─────────────────────────────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      id            INTEGER PRIMARY KEY AUTOINCREMENT,
-      username      TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-      email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-      password_hash TEXT    NOT NULL,
-      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      username         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+      email            TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash    TEXT    NOT NULL,
+      favorite_game_id INTEGER REFERENCES user_games(id) ON DELETE SET NULL,
+      created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migrate existing databases: add favorite_game_id if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN favorite_game_id INTEGER REFERENCES user_games(id) ON DELETE SET NULL`);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) {
+      console.error('Migration error (favorite_game_id):', err.message);
+    }
+  }
 } catch (err) {
   console.error('Error initializing database:', err.message);
 }

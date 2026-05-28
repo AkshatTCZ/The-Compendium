@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Compendium</title>
-  <meta name="description" content="A clean, minimal game tracking application using the RAWG API">
+  <title>Dashboard — The Compendium</title>
+  <meta name="description" content="Your personal gaming identity and dashboard">
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <header>
@@ -19,32 +19,115 @@
           <div id="nav-auth" class="nav-auth"></div>
         </div>
       </nav>
-      <form id="search-form">
-        <input type="text" id="search-input" placeholder="Search for a game (e.g., Witcher 3)..." required />
-        <button type="submit" id="search-btn">Search</button>
-      </form>
     </div>
   </header>
 
-  <main class="container" id="main-content">
+  <main class="container">
+    <div id="dashboard-loading" class="dashboard-loading">
+      <div class="spinner"></div> Loading your profile...
+    </div>
+    <div id="dashboard-error" class="hidden error"></div>
+    
+    <div id="dashboard-content" class="hidden">
+      
+      <!-- ── Favorite Game Showcase ── -->
+      <section id="hero-showcase" class="hero-showcase hidden">
+        <div class="showcase-bg">
+          <img id="fav-bg" src="" alt="">
+          <div class="showcase-gradient"></div>
+        </div>
+        <div class="showcase-content">
+          <div class="showcase-badge">🏆 Favorite Game</div>
+          <h2 id="fav-title" class="showcase-title"></h2>
+          <div class="showcase-meta">
+            <span id="fav-rating"></span>
+            <span id="fav-hours"></span>
+            <span id="fav-completion"></span>
+          </div>
+        </div>
+      </section>
 
-    <!-- ── Home discovery view (shown when no search is active) ── -->
-    <section id="home-view">
-      <div id="home-loading" class="home-loading-state">
-        <!-- Skeleton rows rendered by JS -->
+      <!-- ── Empty State Showcase ── -->
+      <section id="empty-showcase" class="hero-showcase empty-showcase hidden">
+        <div class="showcase-content empty-content">
+          <h3>Your Gaming Identity Awaits</h3>
+          <p>Go to your library and set a "Favorite Game" to display it here.</p>
+          <a href="library.html" class="submit-btn" style="text-decoration:none; display:inline-block; margin-top:1rem;">Go to Library</a>
+        </div>
+      </section>
+
+      <!-- ── Top Stats & Archetype ── -->
+      <section class="stats-overview">
+        <div class="stat-card archetype-card">
+          <div class="stat-label">Player Archetype</div>
+          <div class="stat-value archetype-val" id="stat-archetype">...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Games</div>
+          <div class="stat-value" id="stat-total-games">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Hours</div>
+          <div class="stat-value" id="stat-total-hours">0h</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Rating</div>
+          <div class="stat-value" id="stat-avg-rating">0 ★</div>
+        </div>
+      </section>
+
+      <!-- ── Grid Layout for Details ── -->
+      <div class="dashboard-grid">
+        
+        <!-- Platform Breakdown -->
+        <div class="dash-panel">
+          <h3>Platforms</h3>
+          <div id="platform-bars" class="bar-chart-container"></div>
+        </div>
+
+        <!-- Genre Breakdown -->
+        <div class="dash-panel">
+          <h3>Favorite Genres</h3>
+          <div id="genre-chips" class="genre-chip-container"></div>
+        </div>
+
+        <!-- Completion Analytics -->
+        <div class="dash-panel">
+          <h3>Completion Status</h3>
+          <div class="segmented-bar" id="completion-bar"></div>
+          <div class="legend-container" id="completion-legend"></div>
+        </div>
+
+        <!-- Replay Analytics -->
+        <div class="dash-panel">
+          <h3>Replay Analytics</h3>
+          <div class="replay-stats">
+            <div class="r-stat">
+              <span>Total Replays</span>
+              <strong id="stat-total-replays">0</strong>
+            </div>
+            <div class="r-stat">
+              <span>Most Replayed</span>
+              <strong id="stat-most-replayed">—</strong>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <div id="home-sections">
-        <!-- Populated by JS: Trending, Top Rated, Recent -->
+
+      <!-- ── Horizontal Rows ── -->
+      <div class="dash-row-section">
+        <h3>Recently Added</h3>
+        <div id="recent-games" class="dash-horizontal-scroll"></div>
       </div>
-    </section>
 
-    <!-- ── Search results view (shown when search is active) ── -->
-    <section id="search-view" class="hidden">
-      <div id="loading" class="hidden">Searching the database...</div>
-      <div id="error-message" class="hidden error"></div>
-      <div id="results-grid" class="grid"></div>
-    </section>
+      <div class="dash-row-section">
+        <h3>Users Like You Also Played</h3>
+        <p class="dash-subtitle">Based on games you rated highly</p>
+        <div id="recommendation-games" class="dash-horizontal-scroll"></div>
+      </div>
 
+    </div>
   </main>
 
   <!-- Modal -->
@@ -200,9 +283,9 @@
   <!-- Toast Container -->
   <div id="toast-container"></div>
 
-
   <script src="auth.js"></script>
   <script src="platforms.js"></script>
   <script src="script.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

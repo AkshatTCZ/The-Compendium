@@ -69,11 +69,20 @@ const DISCOVERY_SECTIONS = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  showHomeView();
-  loadDiscoverySections();
-  wireSearchEvents();
+  if (homeView) {
+    showHomeView();
+    loadDiscoverySections();
+    wireSearchEvents();
+  }
   wireModalEvents();
 });
+
+// Expose for dashboard
+window.openGameDetails = (game, source = 'dashboard') => {
+  if (typeof openGdModal === 'function') {
+    openGdModal(game, source);
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VIEW SWITCHER
@@ -94,6 +103,7 @@ function showSearchView() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function wireSearchEvents() {
+  if (!searchForm) return;
   searchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const query = searchInput.value.trim();
@@ -263,10 +273,22 @@ function buildCard(game, source) {
     </div>
   `;
 
-  card.querySelector('.add-lib-btn').addEventListener('click', (e) => {
+  const addLibBtn = card.querySelector('.add-lib-btn');
+  addLibBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     openLibraryModal(parseInt(e.currentTarget.dataset.gameId, 10), e.currentTarget.dataset.source);
   });
+
+  if (window.__libraryReady) {
+    window.__libraryReady.then(libSet => {
+      if (libSet.has(game.id)) {
+        addLibBtn.textContent = '✓ In Library';
+        addLibBtn.disabled = true;
+        addLibBtn.style.opacity = '0.7';
+        addLibBtn.style.cursor = 'default';
+      }
+    });
+  }
 
   // Click anywhere else on the card → open game details modal
   wireCardDetailsClick(card, game, source);
@@ -286,21 +308,36 @@ function renderGameCards(games, container, source) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function wireModalEvents() {
-  modalCloseBtn.addEventListener('click', closeLibraryModal);
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeLibraryModal);
+  if (libraryModal) {
+    libraryModal.addEventListener('click', (e) => {
+      if (e.target === libraryModal) closeLibraryModal();
+    });
+  }
 
-  libraryModal.addEventListener('click', (e) => {
-    if (e.target === libraryModal) closeLibraryModal();
-  });
-
-  libraryForm.addEventListener('submit', handleLibrarySubmit);
+  if (libraryForm) libraryForm.addEventListener('submit', handleLibrarySubmit);
 }
 
 function openLibraryModal(gameId, source) {
+  if (!libraryModal) return;
+  modalError.classList.add('hidden');
+  libraryForm.reset();
+  
   // Look in search results first, then discovery pool
   const pool = source === 'search' ? currentSearchResults : allDiscoveryGames;
   selectedGame = pool.find(g => g.id === gameId)
               ?? allDiscoveryGames.find(g => g.id === gameId)
               ?? currentSearchResults.find(g => g.id === gameId);
+
+  // Fallback for dashboard cards: check if it's currently open in gdModal
+  if (!selectedGame && typeof gdActiveGame !== 'undefined' && gdActiveGame && gdActiveGame.id === gameId) {
+    selectedGame = gdActiveGame;
+  }
+  
+  // Fallback to details cache
+  if (!selectedGame && typeof detailsCache !== 'undefined' && detailsCache.has(gameId)) {
+    selectedGame = detailsCache.get(gameId).game;
+  }
 
   if (!selectedGame) return;
 
@@ -311,10 +348,7 @@ function openLibraryModal(gameId, source) {
   // Dynamically populate platform dropdown from RAWG data
   const platformSelect = document.getElementById('platform');
   const supportedPlatforms = getSupportedPlatforms(selectedGame);
-  populatePlatformDropdown(platformSelect, supportedPlatforms);
-
-  modalError.classList.add('hidden');
-  libraryForm.reset();
+  
   // reset() clears the dynamically set platform — re-apply after reset
   populatePlatformDropdown(platformSelect, supportedPlatforms);
 
@@ -323,6 +357,7 @@ function openLibraryModal(gameId, source) {
 }
 
 function closeLibraryModal() {
+  if (!libraryModal) return;
   libraryModal.classList.remove('modal-visible');
   libraryModal.addEventListener('transitionend', () => {
     libraryModal.classList.add('hidden');
@@ -348,6 +383,7 @@ async function handleLibrarySubmit(e) {
     completion:     fd.get('completion'),
     platform:       fd.get('platform'),
     times_completed: fd.get('times_completed'),
+    genres:         JSON.stringify(selectedGame.genres || []),
   };
 
   const submitBtn = document.getElementById('modal-submit-btn');
@@ -550,8 +586,27 @@ async function openGdModal(game, source) {
     }
   }
 
+  // Merge full detail into active game to prevent missing platforms
+  gdActiveGame = { ...gdActiveGame, ...detail.game };
   populateGdModal(detail);
   gdSkeleton.classList.add('gd-skel-hidden');
+
+  // Check if already in library
+  if (window.__libraryReady) {
+    window.__libraryReady.then(libSet => {
+      if (libSet.has(gdActiveGame.id)) {
+        gdAddBtn.textContent = '✓ In Library';
+        gdAddBtn.disabled = true;
+        gdAddBtn.style.opacity = '0.7';
+        gdAddBtn.style.cursor = 'default';
+      } else {
+        gdAddBtn.textContent = '+ Add to Library';
+        gdAddBtn.disabled = false;
+        gdAddBtn.style.opacity = '1';
+        gdAddBtn.style.cursor = 'pointer';
+      }
+    });
+  }
 }
 
 // ── Close ────────────────────────────────────────────────────────────────────

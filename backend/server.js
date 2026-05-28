@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const gamesRouter     = require('./routes/games');
 const userGamesRouter = require('./routes/user-games');
+const dashboardRouter = require('./routes/dashboard');
 const authRouter      = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
 require('./db'); // Initialize DB on startup
@@ -33,7 +34,7 @@ const sessionDb = new Database(path.join(__dirname, 'sessions.sqlite'));
 
 // Session — stored in SQLite so sessions survive server restarts (dev-friendly)
 app.use(session({
-  name: "__Secure-connect.sid",
+  name: process.env.NODE_ENV === 'production' ? "__Secure-connect.sid" : "connect.sid",
   proxy: true,
   store: new SqliteStore({
     client: sessionDb,
@@ -46,10 +47,10 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    secure:   true,
-    sameSite: "none",
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
     httpOnly: true,
-    partitioned: true,
+    partitioned: process.env.NODE_ENV === 'production',
     maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }));
@@ -63,6 +64,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/api/auth',       authRouter);
 app.use('/api/games',      gamesRouter);
 app.use('/api/user-games', requireAuth, userGamesRouter); // 🔒 protected
+app.use('/api/dashboard',  requireAuth, dashboardRouter); // 🔒 protected
 
 // ── Error handler ─────────────────────────────────────────────────────────────
 

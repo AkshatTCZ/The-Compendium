@@ -71,7 +71,6 @@ async function handleLogout() {
 }
 
 // ── Main init — runs as soon as script is parsed ──────────────────────────────
-// Exposed on window so library.js can await it instead of making a second fetch.
 window.__authReady = fetchAuthState().then(auth => {
   // Run nav update after DOM is ready
   if (document.readyState === 'loading') {
@@ -80,4 +79,17 @@ window.__authReady = fetchAuthState().then(auth => {
     renderNavAuth(auth);
   }
   return auth;
+});
+
+// ── Fetch user library game IDs for quick checking ────────────────────────────
+window.__libraryReady = window.__authReady.then(async auth => {
+  if (!auth.authenticated) return new Set();
+  try {
+    const res = await fetch(`${API_BASE}/api/user-games`, { credentials: 'include' });
+    if (!res.ok) return new Set();
+    const games = await res.json();
+    return new Set(games.map(g => g.game_id));
+  } catch {
+    return new Set();
+  }
 });
